@@ -14,48 +14,55 @@ public class PubSub {
         Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5);
         final ExecutorService executorService = Executors.newCachedThreadPool();
 
-        Publisher<Integer> publisher = subscriber -> {
-            Iterator<Integer> iterator = iterable.iterator();
+        Publisher<Integer> publisher = new Publisher<Integer>() {
+            @Override
+            public void subscribe(Subscriber<? super Integer> subscriber) {
+                Iterator<Integer> iterator = iterable.iterator();
 
-            subscriber.onSubscribe(new Subscription() {
-                public void request(long l) {
-                    executorService.execute(() -> {
-                        int i = 0;
-                        while (i++ < l) {
-                            if (iterator.hasNext()) {
-                                subscriber.onNext(iterator.next());
-                            } else {
-                                subscriber.onComplete();
-                                break;
+                subscriber.onSubscribe(new Subscription() {
+                    public void request(long l) {
+                        executorService.execute(() -> {
+                            int i = 0;
+                            while (i++ < l) {
+                                if (iterator.hasNext()) {
+                                    subscriber.onNext(iterator.next());
+                                } else {
+                                    subscriber.onComplete();
+                                    break;
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                public void cancel() {
+                    public void cancel() {
 
-                }
-            });
+                    }
+                });
+            }
         };
 
         Subscriber<Integer> subscriber = new Subscriber<Integer>() {
             Subscription subscription;
 
+            @Override
             public void onSubscribe(Subscription subscription) {
                 System.out.println(Thread.currentThread().getName() + " onSubscribe");
                 this.subscription = subscription;
                 this.subscription.request(1);
             }
 
+            @Override
             public void onNext(Integer integer) {
                 System.out.println(Thread.currentThread().getName() + " onNext " + integer);
                 this.subscription.request(1);
             }
 
+            @Override
             public void onError(Throwable throwable) {
                 System.out.println("onError " + throwable.getMessage());
             }
 
+            @Override
             public void onComplete() {
                 System.out.println("onComplete");
             }
